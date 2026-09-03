@@ -29,9 +29,9 @@ section{min-height:100svh;padding:90px 20px 55px;display:grid;place-items:center
 <nav><a href="#home">Home</a><a href="#letterSection" id="navLetter">Letter</a><a href="#memories">Memories</a><button id="editBtn">Edit</button></nav>
 <section id="home"><div class="wrap hero"><div class="eyebrow">Our story continues</div><h1>Mohab <span>&amp; Suhaila</span></h1><div class="date">17 · 07 · 2027</div><div class="count"><div class="unit"><span class="num" id="days">0</span><span class="label">Days</span></div><div class="unit"><span class="num" id="hours">0</span><span class="label">Hours</span></div><div class="unit"><span class="num" id="mins">0</span><span class="label">Minutes</span></div><div class="unit"><span class="num" id="secs">0</span><span class="label">Seconds</span></div></div><div class="actions"><button class="btn" id="openBtn">Open My Letter</button><a class="btn alt" href="#memories">See Our Memories</a></div></div></section>
 <section id="letterSection"><div class="book-shell"><article class="book hidden" id="book"><div class="eyebrow" style="color:#a34561">A letter for you</div><h2 id="dear">Dear Suhaila,</h2><div class="letter" id="letterText"></div><p class="signature" id="signature">Mohab ♡</p></article></div></section>
-<section id="memories"><div class="wrap"><h2 class="section-title">Our Memories</h2><p class="sub">Photos added here are stored privately in this browser on this device. Drag photos into the box or tap "Add Photos".</p><div class="drop" id="drop"><strong>Drop your photos here</strong><br><small>JPG, PNG, WEBP</small><input id="photoInput" type="file" accept="image/*" multiple><div class="toolbar"><button class="btn" id="addPhotos">Add Photos</button><button class="btn alt" id="clearPhotos">Clear Gallery</button></div></div><div class="gallery" id="gallery"></div></div></section>
+<section id="memories"><div class="wrap"><h2 class="section-title">Our Memories</h2><p class="sub">Photos added here are stored privately in this browser on this device. Drag photos into the box or tap "Add Photos".</p><div class="drop"><strong>Our memories</strong><br><small>Photos are part of the website and are visible to everyone.</small></div><div class="gallery" id="gallery"></div></div></section>
 <footer>Made for Mohab &amp; Suhaila · 17 July 2027</footer>
-<div class="editor hidden" id="editor"><div class="panel"><h3>Personalize the Website</h3><p class="note">Changes and uploaded files are saved only in this browser.</p><label>Your name</label><input id="nameA"><label>Suhaila's name</label><input id="nameB"><label>Wedding date and time</label><input id="dateInput" type="datetime-local"><label>Love letter</label><textarea id="letterInput"></textarea><div class="row"><button class="btn" id="saveEdit">Save Changes</button><button class="btn alt" style="color:#6f0d24;border-color:#6f0d24" id="closeEdit">Close</button><button class="btn alt" style="color:#6f0d24;border-color:#6f0d24" id="resetAll">Reset All</button></div></div></div>
+<div class="editor hidden" id="editor"><div class="panel"><h3>Personalize the Website</h3><p class="note">Names, date, and letter are saved in this browser. Photos are loaded from the website's /photos folder.</p><label>Your name</label><input id="nameA"><label>Suhaila's name</label><input id="nameB"><label>Wedding date and time</label><input id="dateInput" type="datetime-local"><label>Love letter</label><textarea id="letterInput"></textarea><div class="row"><button class="btn" id="saveEdit">Save Changes</button><button class="btn alt" style="color:#6f0d24;border-color:#6f0d24" id="closeEdit">Close</button><button class="btn alt" style="color:#6f0d24;border-color:#6f0d24" id="resetAll">Reset All</button></div></div></div>
 <script>
 const $=s=>document.querySelector(s), DB='MSLoveSite', STORE='files';
 const defaultLetter=`I don't think love is measured by big words or perfect moments. For me, it is found in the small things: the conversations that make ordinary days better, the memories we keep creating, and the comfort of knowing that we continue choosing each other.\n\nYou make life feel lighter, calmer, and more meaningful. Every step toward our future reminds me how lucky I am to share my life and my dreams with you.\n\nAs we count down to 17 July 2027, I am excited for everything ahead of us. Not because every day will be perfect, but because we will face every day together.\n\nThank you for being you.`;
@@ -44,22 +44,39 @@ function apply(){try{document.querySelector('.hero h1').innerHTML=`${settings.a}
 function tick(){try{let n=new Date(),t=new Date(settings.date.replace(' ','T')),q=isNaN(t)?0:Math.max(0,t-n);$('#days').textContent=Math.floor(q/864e5);$('#hours').textContent=Math.floor(q/36e5)%24;$('#mins').textContent=Math.floor(q/6e4)%60;$('#secs').textContent=Math.floor(q/1e3)%60}catch(e){}}
 apply();tick();setInterval(tick,1000);
 
-/* ---- Everything else: sealed in its own try/catch ---- */
+/* ---- Static GitHub Pages gallery ---- */
 try{
-function db(){return new Promise((ok,no)=>{let r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})}
-async function addFiles(files,type){let d=await db(),tx=d.transaction(STORE,'readwrite'),s=tx.objectStore(STORE);[...files].forEach(file=>s.add({type,file,name:file.name,at:Date.now()}));return new Promise(r=>tx.oncomplete=r)}
-async function getFiles(type){let d=await db();return new Promise((ok,no)=>{let r=d.transaction(STORE).objectStore(STORE).getAll();r.onsuccess=()=>ok(r.result.filter(x=>x.type===type));r.onerror=()=>no(r.error)})}
-async function deleteOne(id){let d=await db();return new Promise(r=>{let tx=d.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(id);tx.oncomplete=r})}
-async function clearType(type){for(const x of await getFiles(type))await deleteOne(x.id)}
-function openLetter(){$('#book').classList.remove('hidden');$('#book').classList.remove('open');void $('#book').offsetWidth;$('#book').classList.add('open');$('#letterSection').scrollIntoView()}
-$('#openBtn').onclick=openLetter;
-$('#navLetter').onclick=e=>{e.preventDefault();openLetter()};
-async function renderGallery(){let g=$('#gallery');g.innerHTML='';let files=await getFiles('photo');for(const [i,x] of files.entries()){let u=URL.createObjectURL(x.file),c=document.createElement('figure');c.className='card';c.style.setProperty('--r',`${[-2,1.5,-1,2,.5][i%5]}deg`);c.innerHTML=`<img alt="Our memory ${i+1}"><figcaption class="cap">Our memory ${i+1}</figcaption><button class="del" aria-label="Delete">×</button>`;c.querySelector('img').src=u;c.querySelector('.del').onclick=async()=>{URL.revokeObjectURL(u);await deleteOne(x.id);renderGallery()};g.append(c)}}
-async function photos(files){let good=[...files].filter(f=>f.type.startsWith('image/'));if(good.length){await addFiles(good,'photo');renderGallery()}}
-$('#addPhotos').onclick=()=>$('#photoInput').click();$('#photoInput').onchange=e=>photos(e.target.files);$('#clearPhotos').onclick=async()=>{if(confirm('Remove all gallery photos from this browser?')){await clearType('photo');renderGallery()}};
-['dragenter','dragover'].forEach(e=>$('#drop').addEventListener(e,x=>{x.preventDefault();$('#drop').classList.add('drag')}));['dragleave','drop'].forEach(e=>$('#drop').addEventListener(e,x=>{x.preventDefault();$('#drop').classList.remove('drag')}));$('#drop').addEventListener('drop',e=>photos(e.dataTransfer.files));
-$('#editBtn').onclick=()=>$('#editor').classList.remove('hidden');$('#closeEdit').onclick=()=>$('#editor').classList.add('hidden');$('#saveEdit').onclick=async()=>{settings={a:$('#nameA').value.trim()||'Mohab',b:$('#nameB').value.trim()||'Suhaila',date:$('#dateInput').value||'2027-07-17T17:00',letter:$('#letterInput').value.trim()||defaultLetter};try{localStorage.setItem('ms-settings',JSON.stringify(settings))}catch(e){}apply();tick();$('#editor').classList.add('hidden')};
-$('#resetAll').onclick=async()=>{if(confirm('Reset names, letter and photos?')){try{localStorage.removeItem('ms-settings')}catch(e){}try{await clearType('photo')}catch(e){}location.reload()}};
+  // Add your image filenames here. Put the matching files in the /photos folder
+  // in the same GitHub repository as this index.html.
+  const photoFiles = [
+    "01.jpg",
+    "02.jpg",
+    "03.jpg",
+    "04.jpg"
+  ];
+
+  function renderGallery(){
+    const g=$('#gallery');
+    g.innerHTML='';
+    for(const [i,file] of photoFiles.entries()){
+      const c=document.createElement('figure');
+      c.className='card';
+      c.style.setProperty('--r',`${[-2,1.5,-1,2,.5][i%5]}deg`);
+      const img=document.createElement('img');
+      img.alt=`Our memory ${i+1}`;
+      img.src=`photos/${file}`;
+      img.loading='lazy';
+      img.onerror=()=>{c.remove()};
+      const cap=document.createElement('figcaption');
+      cap.className='cap';
+      cap.textContent=`Our memory ${i+1}`;
+      c.append(img,cap);
+      g.append(c);
+    }
+  }
+  renderGallery();
+}catch(e){console.error(e)}
+
 setInterval(()=>{let h=document.createElement('i');h.className='heart';h.textContent='♡';h.style.left=Math.random()*100+'vw';h.style.fontSize=15+Math.random()*28+'px';h.style.animationDuration=6+Math.random()*7+'s';document.body.append(h);setTimeout(()=>h.remove(),13000)},900);
 renderGallery();
 }catch(e){}
